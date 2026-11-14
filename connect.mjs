@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Conecta Claude Code, Codex, Gemini CLI y Antigravity al canal como servidor MCP.
-// Uso: node connect.mjs            → pregunta agente por agente y enseña el cambio antes de hacerlo
-//      node connect.mjs --yes      → conecta todos los agentes encontrados sin preguntar
-//      node connect.mjs --print    → solo imprime la configuración, sin tocar nada
-//      node connect.mjs claude codex  → limita a esos agentes
+// Connects Claude Code, Codex, Gemini CLI and Antigravity to the channel as an MCP server.
+// Usage: node connect.mjs              → asks agent by agent and shows the change before making it
+//        node connect.mjs --yes        → connects every agent found without asking
+//        node connect.mjs --print      → only prints the configuration, changes nothing
+//        node connect.mjs claude codex → only these agents
 import { execFileSync, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -46,9 +46,9 @@ const targets = [
     found: () => which('claude') !== null || existsSync(join(home, '.claude')),
     describe: () => which('claude')
       ? `claude mcp add --scope user agent-channel -- "${node}" ${args('claude', 50).map(value => `"${value}"`).join(' ')}`
-      : `Añade a .mcp.json de tu proyecto o a la configuración MCP de Claude:\n${JSON.stringify({ mcpServers: { 'agent-channel': { command: node, args: args('claude', 50) } } }, null, 2)}`,
+      : `Add to your project's .mcp.json or to Claude's MCP configuration:\n${JSON.stringify({ mcpServers: { 'agent-channel': { command: node, args: args('claude', 50) } } }, null, 2)}`,
     apply: () => {
-      if (!which('claude')) throw new Error('no se encontró la CLI «claude»; copia la configuración impresa a mano');
+      if (!which('claude')) throw new Error('the "claude" CLI was not found; copy the printed configuration by hand');
       spawnSync('claude', ['mcp', 'remove', '--scope', 'user', 'agent-channel'], { stdio: 'ignore', shell: process.platform === 'win32' });
       execFileSync('claude', ['mcp', 'add', '--scope', 'user', 'agent-channel', '--', node, ...args('claude', 50)], { stdio: 'inherit', shell: process.platform === 'win32' });
     },
@@ -91,16 +91,16 @@ const targets = [
 
 const selected = targets.filter(target => !only.length || only.includes(target.id));
 const prompt = printOnly || assumeYes ? null : createInterface({ input: process.stdin, output: process.stdout });
-process.stdout.write(`Canal: ${channel}\n`);
+process.stdout.write(`Channel: ${channel}\n`);
 for (const target of selected) {
   const found = target.found();
-  process.stdout.write(`\n── ${target.name} ${found ? '(encontrado)' : '(no encontrado)'}\n${target.describe()}\n`);
+  process.stdout.write(`\n── ${target.name} ${found ? '(found)' : '(not found)'}\n${target.describe()}\n`);
   if (printOnly || (!found && !only.includes(target.id))) continue;
-  const answer = assumeYes ? 's' : (await prompt.question('¿Conectar? [s/N] ')).trim().toLowerCase();
-  if (!['s', 'si', 'sí', 'y', 'yes'].includes(answer)) continue;
+  const answer = assumeYes ? 'y' : (await prompt.question('Connect? [y/N] ')).trim().toLowerCase();
+  if (!['y', 'yes'].includes(answer)) continue;
   try {
     target.apply();
-    process.stdout.write(`✓ ${target.name} conectado. Reinicia el agente para que cargue el canal.\n`);
+    process.stdout.write(`✓ ${target.name} connected. Restart the agent so it loads the channel.\n`);
   } catch (error) {
     process.stdout.write(`✗ ${target.name}: ${error.message}\n`);
   }

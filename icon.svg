@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Canal de Agentes: tres círculos que se cruzan, uno por agente; donde coinciden, el canal común. -->
+  <!-- Agent Channel: three overlapping circles, one per agent; where they meet is the shared channel. -->
   <defs>
     <linearGradient id="fondo" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#2a2724"/>

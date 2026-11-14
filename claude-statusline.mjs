@@ -1,7 +1,7 @@
-// Línea de estado de Claude Code. Claude Code le pasa por stdin un JSON que, en suscripciones Pro, Max
-// y Ultra, incluye rate_limits.five_hour y rate_limits.seven_day (used_percentage, resets_at).
-// Guarda ese uso en data/claude-usage.json para que la ventana del canal muestre el porcentaje,
-// e imprime una línea corta con el modelo y el uso.
+// Claude Code status line. Claude Code passes a JSON on stdin that, on Pro, Max and Ultra plans,
+// includes rate_limits.five_hour and rate_limits.seven_day (used_percentage, resets_at).
+// It saves that usage in data/claude-usage.json so the channel window shows the percentage,
+// and prints a short line with the model and the usage.
 import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

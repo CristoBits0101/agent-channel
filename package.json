@@ -14,7 +14,7 @@
   "scripts": {
     "start": "node launch.mjs",
     "connect": "node connect.mjs",
-    "server": "node ventana.mjs",
-    "check": "node --check channel.mjs && node --check ventana.mjs && node --check launch.mjs && node --check connect.mjs && node --check ventana.js"
+    "server": "node server.mjs",
+    "check": "node --check channel.mjs && node --check server.mjs && node --check launch.mjs && node --check connect.mjs && node --check app.js"
   }
 }

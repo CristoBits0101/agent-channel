@@ -1,23 +1,23 @@
 'use strict';
 
-const token = document.querySelector('meta[name="ventana-token"]').content;
+const token = document.querySelector('meta[name="window-token"]').content;
 const $ = selector => document.querySelector(selector);
-const names = { claude: 'Claude', codex: 'Codex', gemini: 'Gemini', propietario: 'Propietario', todos: 'Todos' };
-const stateNames = { activo: 'Activo', inactivo: 'Inactivo', sin_tokens: 'Sin tokens', desconocido: 'Sin datos' };
-const statusNames = { asignada: 'Asignada', en_curso: 'En curso', terminada: 'Terminada · por verificar', verificada: 'Verificada', bloqueada: 'Bloqueada' };
-// Hora local del equipo de cada usuario.
+const names = { claude: 'Claude', codex: 'Codex', gemini: 'Gemini', owner: 'Owner', all: 'All' };
+const stateNames = { active: 'Active', idle: 'Idle', out_of_tokens: 'Out of tokens', unknown: 'No data' };
+const statusNames = { assigned: 'Assigned', in_progress: 'In progress', done: 'Done · to verify', verified: 'Verified', blocked: 'Blocked' };
+// Local time of each user's machine.
 const zone = undefined;
-const dayFormat = new Intl.DateTimeFormat('es-ES', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' });
-const timeFormat = new Intl.DateTimeFormat('es-ES', { timeZone: zone, hour: '2-digit', minute: '2-digit' });
-const shortDayFormat = new Intl.DateTimeFormat('es-ES', { timeZone: zone, day: '2-digit', month: '2-digit' });
-const fullFormat = new Intl.DateTimeFormat('es-ES', { timeZone: zone, dateStyle: 'full', timeStyle: 'medium' });
+const dayFormat = new Intl.DateTimeFormat(undefined, { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' });
+const timeFormat = new Intl.DateTimeFormat(undefined, { timeZone: zone, hour: '2-digit', minute: '2-digit' });
+const shortDayFormat = new Intl.DateTimeFormat(undefined, { timeZone: zone, day: '2-digit', month: '2-digit' });
+const fullFormat = new Intl.DateTimeFormat(undefined, { timeZone: zone, dateStyle: 'full', timeStyle: 'medium' });
 
 const params = new URLSearchParams(location.search);
 const solo = /^T-\d{3,}$/.test(params.get('task') ?? '') ? params.get('task') : null;
 if (solo) document.body.dataset.solo = '';
 
 let data = { agents: {}, tasks: [], messages: [] };
-// La vista principal es el canal de agentes; cada tarea abre su propio chat.
+// The main view is the agent channel; each task opens its own chat.
 let view = solo ? { type: 'task', id: solo } : { type: 'channel' };
 let previous = view;
 let loaded = false;
@@ -27,7 +27,7 @@ const storage = {
   get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} },
 };
-const seen = storage.get('ventana-seen') ?? {};
+const seen = storage.get('window-seen') ?? {};
 const conversationKey = current => current.id ?? current.type;
 
 function element(tag, attributes = {}, ...children) {
@@ -51,7 +51,7 @@ function formatTime(value) {
 }
 
 async function api(path, body) {
-  const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Ventana-Token': token }, body: JSON.stringify(body ?? {}) });
+  const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Window-Token': token }, body: JSON.stringify(body ?? {}) });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error ?? `Error ${response.status}`);
   return result;
@@ -61,16 +61,16 @@ const announce = text => { $('#announce').textContent = ''; requestAnimationFram
 const messagesOf = current => data.messages.filter(message => current.type === 'task' ? message.task === current.id : !message.task);
 const findTask = id => data.tasks.find(task => task.id === id);
 
-// Los agentes llevan el logotipo oficial de su compañía (logos.js); el propietario, sus iniciales.
+// Agents show their company's official logo (logos.js); the owner shows initials.
 function logo(who) {
-  // El logotipo de Gemini no se redistribuye: el lanzador lo descarga de Google en la carpeta de datos.
+  // The Gemini logo is not redistributed: the launcher downloads it from Google into the data folder.
   if (who === 'gemini') {
     const image = element('img', { src: '/gemini.png', alt: '', width: '18', height: '18' });
     image.addEventListener('error', () => image.replaceWith(document.createTextNode('Ge')), { once: true });
     return image;
   }
   const path = window.agentLogos?.[who];
-  if (!path) return document.createTextNode(who === 'propietario' ? 'Tú' : String(who).slice(0, 2));
+  if (!path) return document.createTextNode(who === 'owner' ? 'You' : String(who).slice(0, 2));
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('focusable', 'false');
@@ -81,7 +81,7 @@ function logo(who) {
 }
 const avatar = (who, withState = false) => element('span', { class: 'avatar', 'data-who': who, 'aria-hidden': 'true' }, logo(who), withState ? element('span', { class: 'state' }) : null);
 
-// Solo se vuelve a pintar lo que cambia, para no perder el foco ni el clic mientras llega el estado en vivo.
+// Only what changed is repainted, so focus and clicks survive while live state arrives.
 const painted = {};
 const changed = (part, value) => {
   const key = JSON.stringify(value);
@@ -98,17 +98,17 @@ function renderAgents() {
   }))) return;
   list.replaceChildren(...['claude', 'codex', 'gemini'].map(name => {
     const info = data.agents[name] ?? {};
-    const state = stateNames[info.state] ?? 'Sin datos';
-    const model = info.state === 'sin_tokens' ? `Sin tokens · ${info.label ?? ''}` : info.label ? `${info.label}${info.effort ? ` · ${info.effort}` : ''}` : 'Modelo sin detectar';
+    const state = stateNames[info.state] ?? 'No data';
+    const model = info.state === 'out_of_tokens' ? `Out of tokens · ${info.label ?? ''}` : info.label ? `${info.label}${info.effort ? ` · ${info.effort}` : ''}` : 'Model not detected';
     const used = typeof info.usedPercent === 'number' ? Math.max(0, Math.min(100, Math.round(info.usedPercent))) : null;
-    const quotaNote = info.usageDetail ? `uso ${info.usageDetail}` : used === null ? (name === "gemini" ? "Antigravity no expone su cuota" : "sin datos de cuota") : null;
-    const details = [state, quotaNote, info.permission?.detail, info.source, info.declared ? `fijado ${formatTime(info.declared.at).short}` : null, info.resetsAt ? `cuota se renueva ${formatTime(info.resetsAt).short}` : null, info.limitText].filter(Boolean).join(' · ');
-    const button = element('button', { type: 'button', class: 'agent', 'data-state': info.state ?? 'desconocido', 'data-agent': name, title: details, 'aria-label': `${names[name]}: ${model}. ${state}${used !== null ? `. Cuota usada ${used} %` : ''}. ${info.permission?.label ?? 'Permisos sin datos'}. Cambiar modelo` },
+    const quotaNote = info.usageDetail ? `usage ${info.usageDetail}` : used === null ? (name === "gemini" ? "Antigravity does not expose its quota" : "no quota data") : null;
+    const details = [state, quotaNote, info.permission?.detail, info.source, info.declared ? `set ${formatTime(info.declared.at).short}` : null, info.resetsAt ? `quota resets ${formatTime(info.resetsAt).short}` : null, info.limitText].filter(Boolean).join(' · ');
+    const button = element('button', { type: 'button', class: 'agent', 'data-state': info.state ?? 'unknown', 'data-agent': name, title: details, 'aria-label': `${names[name]}: ${model}. ${state}${used !== null ? `. Quota used ${used} %` : ''}. ${info.permission?.label ?? 'Permissions unknown'}. Change model` },
       avatar(name, true),
       element('span', { class: 'agent-info' },
         element('span', { class: 'agent-line' },
           element('span', { class: 'agent-name', text: names[name] }),
-          element('span', { class: 'agent-permission', title: info.permission?.detail ?? 'Permisos sin detectar', text: info.permission?.label ?? 'Sin datos' })),
+          element('span', { class: 'agent-permission', title: info.permission?.detail ?? 'Permissions not detected', text: info.permission?.label ?? 'No data' })),
         element('span', { class: 'agent-line' },
           element('span', { class: 'agent-model', text: model }),
           usage(used, name))));
@@ -116,59 +116,59 @@ function renderAgents() {
   }));
 }
 
-// Uso de cuota: barra fina y porcentaje usado; sin datos lo dice en lugar de inventar un número.
+// Quota usage: a thin bar and the percentage used; without data it says so instead of inventing a number.
 function usage(used, name) {
-  if (used === null) return element('span', { class: 'agent-usage', 'data-level': 'none', title: name === 'gemini' ? 'Antigravity no expone su cuota' : 'Sin datos de cuota', text: 'Sin datos' });
+  if (used === null) return element('span', { class: 'agent-usage', 'data-level': 'none', title: name === 'gemini' ? 'Antigravity does not expose its quota' : 'No quota data', text: 'No data' });
   const bar = element('span', { class: 'usage-bar', 'aria-hidden': 'true' }, element('span'));
   bar.firstChild.style.width = `${used}%`;
-  return element('span', { class: 'agent-usage', 'data-level': used >= 85 ? 'high' : 'normal', title: `${used} % de la cuota usado` }, bar, `${used} %`);
+  return element('span', { class: 'agent-usage', 'data-level': used >= 85 ? 'high' : 'normal', title: `${used} % of the quota used` }, bar, `${used} %`);
 }
 
 function openAgentDialog(name) {
   const info = data.agents[name] ?? {};
   const dialog = $('#agent-dialog');
   dialog.dataset.agent = name;
-  $('#agent-dialog-title').textContent = `Modelo de ${names[name]}`;
-  $('#agent-source').textContent = info.declared ? `Fijado a mano ${formatTime(info.declared.at).short}. Detección: ${info.source ?? 'sin datos'}.` : `Detectado desde: ${info.source ?? 'sin datos'}.`;
+  $('#agent-dialog-title').textContent = `${names[name]} Model`;
+  $('#agent-source').textContent = info.declared ? `Set by hand ${formatTime(info.declared.at).short}. Detection: ${info.source ?? 'no data'}.` : `Detected from: ${info.source ?? 'no data'}.`;
   $('#agent-model').value = info.model ?? '';
   $('#agent-effort').value = ['low', 'medium', 'high', 'xhigh', 'ultra'].includes(info.effort) ? info.effort : '';
-  $('#agent-out').checked = info.state === 'sin_tokens';
+  $('#agent-out').checked = info.state === 'out_of_tokens';
   dialog.showModal();
 }
 
 function unreadCount(key, messages) {
   const last = seen[key] ?? 0;
-  return messages.filter(message => message.seq > last && message.from !== 'propietario').length;
+  return messages.filter(message => message.seq > last && message.from !== 'owner').length;
 }
 
 function renderTasks() {
   const list = $('#tasks');
   if (!changed('tasks', [view, data.tasks.map(task => [task.id, task.title, task.status, task.assignee]), data.messages.at(-1)?.seq, seen])) return;
-  const ordered = [...data.tasks].sort((a, b) => (a.status === 'verificada') - (b.status === 'verificada') || a.id.localeCompare(b.id));
+  const ordered = [...data.tasks].sort((a, b) => (a.status === 'verified') - (b.status === 'verified') || a.id.localeCompare(b.id));
   list.replaceChildren(...ordered.map(task => {
     const unread = view.type === 'task' && view.id === task.id ? 0 : unreadCount(task.id, messagesOf({ type: 'task', id: task.id }));
     const button = element('button', { type: 'button', class: 'task-link', 'data-status': task.status, 'data-id': task.id, 'aria-current': view.type === 'task' && view.id === task.id ? 'true' : 'false' },
-      element('span', { class: 'task-mark', 'aria-hidden': 'true', text: task.status === 'verificada' ? '✓' : '' }),
+      element('span', { class: 'task-mark', 'aria-hidden': 'true', text: task.status === 'verified' ? '✓' : '' }),
       element('span', { class: 'task-body' },
         element('span', { class: 'task-title', text: task.title }),
         element('span', { class: 'task-meta' },
           element('span', { text: `${task.id} · ${names[task.assignee]} · ${statusNames[task.status] ?? task.status}` }),
-          unread ? element('span', { class: 'unread', text: String(unread), 'aria-label': `${unread} mensajes sin leer` }) : null)));
+          unread ? element('span', { class: 'unread', text: String(unread), 'aria-label': `${unread} unread messages` }) : null)));
     return element('li', {}, button);
   }));
   $('#no-tasks').hidden = data.tasks.length > 0;
-  $('#clear').disabled = !data.tasks.some(task => task.status === 'verificada');
-  const open = data.tasks.filter(task => task.status !== 'verificada').length;
+  $('#clear').disabled = !data.tasks.some(task => task.status === 'verified');
+  const open = data.tasks.filter(task => task.status !== 'verified').length;
   $('#task-count').textContent = data.tasks.length ? String(data.tasks.length) : '';
-  $('#task-count').setAttribute('aria-label', `${data.tasks.length} tareas, ${open} abiertas`);
+  $('#task-count').setAttribute('aria-label', `${data.tasks.length} tasks, ${open} open`);
 }
 
 function messageNode(message) {
   const time = formatTime(message.at);
   const sender = element('span', { class: 'sender' }, names[message.from] ?? message.from);
   if (message.model) sender.append(' ', element('span', { class: 'version', text: `· ${message.model}` }));
-  if (message.from === 'propietario') sender.append(' ', element('span', { class: 'version', text: message.signed ? '· desde la ventana' : '· sin firma (consola)' }));
-  if (message.to && message.to !== 'todos') sender.append(' ', element('span', { class: 'to', text: `→ ${names[message.to] ?? message.to}` }));
+  if (message.from === 'owner') sender.append(' ', element('span', { class: 'version', text: message.signed ? '· from the window' : '· unsigned (console)' }));
+  if (message.to && message.to !== 'all') sender.append(' ', element('span', { class: 'to', text: `→ ${names[message.to] ?? message.to}` }));
   return element('li', { class: 'message', 'data-from': message.from, 'data-seq': String(message.seq) },
     avatar(message.from),
     element('div', { class: 'message-main' },
@@ -176,11 +176,11 @@ function messageNode(message) {
       element('div', { class: 'message-text' }, formatText(message.text))));
 }
 
-// Formato del texto de los mensajes, construido con nodos (nunca innerHTML): bloques ``` de código,
-// listas con «- », «1.» o «1)», enumeraciones en línea «1) … 2) …», párrafos, `código`, **negrita** y @menciones.
+// Message text formatting, built from nodes (never innerHTML): ``` code blocks,
+// lists with "- ", "1." or "1)", inline enumerations "1) … 2) …", paragraphs, `code`, **bold** and @mentions.
 function inlineFormat(text) {
   const fragment = document.createDocumentFragment();
-  const pattern = /`([^`\n]+)`|\*\*([^*\n]+)\*\*|(^|[\s(])(@(?:todos|claude|codex|gemini|propietario))\b/gi;
+  const pattern = /`([^`\n]+)`|\*\*([^*\n]+)\*\*|(^|[\s(])(@(?:all|claude|codex|gemini|owner))\b/gi;
   let last = 0;
   for (const match of text.matchAll(pattern)) {
     let start = match.index;
@@ -204,7 +204,7 @@ function withBreaks(text) {
   return fragment;
 }
 
-// «Intro: 1) uno 2) dos» → intro y lista, solo si los números van seguidos desde 1.
+// "Intro: 1) one 2) two" → intro and list, only when the numbers run in order from 1.
 function inlineEnumeration(text) {
   const marks = [...text.matchAll(/(^|\s)(\d{1,2})\)\s/g)];
   if (marks.length < 2) return null;
@@ -257,7 +257,7 @@ function formatText(text) {
 
 function renderThread() {
   const task = view.type === 'task' ? findTask(view.id) : null;
-  // Una tarea que ya no existe (archivada con la papelera) deja la vista vacía, una vez cargado el estado.
+  // A task that no longer exists (archived with the trash button) falls back to the channel once state has loaded.
   if (view.type === 'task' && !task && loaded) view = { type: 'channel' };
   $('#compose-view').hidden = view.type !== 'compose';
   $('#thread-view').hidden = view.type === 'compose';
@@ -269,18 +269,18 @@ function renderThread() {
   const meta = [];
   {
     const info = data.agents[task.assignee] ?? {};
-    meta.push(`Asignada a ${names[task.assignee]}`, statusNames[task.status] ?? task.status);
+    meta.push(`Assigned to ${names[task.assignee]}`, statusNames[task.status] ?? task.status);
     const advice = task.recommendation;
-    if (advice?.agent) meta.push(`Orquestador: ${names[advice.agent]} · ${advice.model} · esfuerzo ${advice.effort}`);
-    if (task.verifiedBy) meta.push(`verificada por ${names[task.verifiedBy] ?? task.verifiedBy}`);
-    if (info.state === 'sin_tokens' && task.status !== 'verificada') meta.push(`⚠ ${names[task.assignee]} está sin tokens: reasígnala`);
+    if (advice?.agent) meta.push(`Orchestrator: ${names[advice.agent]} · ${advice.model} · effort ${advice.effort}`);
+    if (task.verifiedBy) meta.push(`verified by ${names[task.verifiedBy] ?? task.verifiedBy}`);
+    if (info.state === 'out_of_tokens' && task.status !== 'verified') meta.push(`⚠ ${names[task.assignee]} is out of tokens: reassign it`);
   }
   $('#thread-meta').textContent = meta.join(' · ');
   }
   if (task) {
     $('#reassign').value = task.assignee;
-    $('#verify').hidden = task.status === 'verificada';
-    $('#reopen').hidden = !['terminada', 'verificada'].includes(task.status);
+    $('#verify').hidden = task.status === 'verified';
+    $('#reopen').hidden = !['done', 'verified'].includes(task.status);
     $('#popout').hidden = Boolean(solo);
     $('#thread-close').hidden = Boolean(solo);
   }
@@ -298,15 +298,15 @@ function renderThread() {
   }
   $('#empty').hidden = messages.length > 0;
   const last = messages.at(-1)?.seq ?? 0;
-  if (last && seen[conversationKey(view)] !== last) { seen[conversationKey(view)] = last; storage.set('ventana-seen', seen); }
+  if (last && seen[conversationKey(view)] !== last) { seen[conversationKey(view)] = last; storage.set('window-seen', seen); }
 }
 
 function render() {
   renderAgents();
   renderTasks();
   renderThread();
-  document.title = view.type === 'task' && findTask(view.id) ? `${view.id} · CANAL DE AGENTES` : 'CANAL DE AGENTES';
-  $('.titlebar').textContent = view.type === 'task' && findTask(view.id) ? `${view.id} · Canal de Agentes` : 'Canal de Agentes';
+  document.title = view.type === 'task' && findTask(view.id) ? `${view.id} · AGENT CHANNEL` : 'AGENT CHANNEL';
+  $('.titlebar').textContent = view.type === 'task' && findTask(view.id) ? `${view.id} · Agent Channel` : 'Agent Channel';
 }
 
 function open(next) {
@@ -325,17 +325,17 @@ function connect() {
   events.addEventListener('state', event => {
     data = JSON.parse(event.data);
     loaded = true;
-    status.textContent = 'En línea';
+    status.textContent = 'Online';
     status.dataset.state = 'live';
     render();
   });
   events.onerror = () => {
-    status.textContent = 'Sin conexión';
+    status.textContent = 'Offline';
     status.dataset.state = 'error';
   };
 }
 
-// Recomendación del orquestador mientras se escribe la tarea.
+// Orchestrator recommendation while the task is being written.
 let adviceTimer;
 function updateAdvice() {
   clearTimeout(adviceTimer);
@@ -344,9 +344,9 @@ function updateAdvice() {
   adviceTimer = setTimeout(async () => {
     try {
       const advice = await api('/api/recommend', { text });
-      if (!advice.agent) { $('#advice').replaceChildren(element('strong', { text: 'Ningún agente tiene tokens disponibles.' })); return; }
+      if (!advice.agent) { $('#advice').replaceChildren(element('strong', { text: 'No agent has tokens available.' })); return; }
       $('#advice').replaceChildren(
-        element('div', {}, 'Orquestador: ', element('strong', { text: `${names[advice.agent]} · ${advice.model} · esfuerzo ${advice.effort}` }), ` (complejidad ${advice.level})`),
+        element('div', {}, 'Orchestrator: ', element('strong', { text: `${names[advice.agent]} · ${advice.model} · effort ${advice.effort}` }), ` (complexity ${advice.level})`),
         element('ul', {}, advice.reasons.map(reason => element('li', { text: reason }))),
       );
     } catch (error) {
@@ -359,17 +359,17 @@ $('#tasks').addEventListener('click', event => {
   const button = event.target.closest('.task-link');
   if (button) open({ type: 'task', id: button.dataset.id });
 });
-// Volver desde «Nueva tarea» a lo que había antes, con la X, Cancelar o Esc.
+// Go back from "New Task" to the previous view with X, Cancel or Esc.
 const back = () => open(previous.type === 'task' && findTask(previous.id) ? previous : { type: 'channel' });
 $('#compose-back').addEventListener('click', back);
 $('#compose-cancel').addEventListener('click', back);
 $('#compose').addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); back(); } });
-// El canal de agentes no tiene enlace: es la vista por defecto. Desde una tarea se vuelve con la X o con Esc.
+// The agent channel has no link: it is the default view. From a task, X or Esc goes back.
 $('#thread-close').addEventListener('click', () => open({ type: 'channel' }));
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && view.type === 'task' && !solo && !$('#agent-dialog').open) open({ type: 'channel' });
 });
-// La caja de escribir crece con el texto hasta un máximo y vuelve a una línea al enviar.
+// The message box grows with the text up to a maximum and returns to one line on send.
 const fitReply = () => { const box = $('#reply-text'); box.style.height = 'auto'; box.style.height = `${Math.min(box.scrollHeight, 200)}px`; box.closest('.reply-box').classList.toggle('tall', box.scrollHeight > 48); };
 $('#reply-text').addEventListener('input', fitReply);
 $('#agents').addEventListener('click', event => {
@@ -384,7 +384,7 @@ $('#agent-dialog').addEventListener('close', async () => {
   try {
     const body = action === 'clear' ? { clear: true } : { model: $('#agent-model').value.trim(), effort: $('#agent-effort').value, outOfTokens: $('#agent-out').checked };
     await api(`/api/agents/${name}`, body);
-    announce(action === 'clear' ? `${names[name]} vuelve a la detección automática` : `Modelo de ${names[name]} actualizado`);
+    announce(action === 'clear' ? `${names[name]} is back on automatic detection` : `${names[name]} model updated`);
   } catch (error) {
     $('#reply-error').textContent = error.message;
   }
@@ -403,8 +403,8 @@ $('#compose').addEventListener('submit', async event => {
     const { task } = await api('/api/tasks', { title: form.title.value, text: form.text.value, assignee: form.assignee.value || undefined });
     form.reset();
     $('#advice').replaceChildren();
-    data.tasks.push(task);
-    announce(`Tarea ${task.id} enviada a ${names[task.assignee]}`);
+    if (!findTask(task.id)) data.tasks.push(task);
+    announce(`Task ${task.id} sent to ${names[task.assignee]}`);
     open({ type: 'task', id: task.id });
   } catch (error) {
     $('#compose-error').textContent = error.message;
@@ -447,15 +447,15 @@ async function changeStatus(body, message) {
     $('#reply-error').textContent = error.message;
   }
 }
-$('#verify').addEventListener('click', () => changeStatus({ status: 'verificada' }, `${view.id} verificada`));
-$('#reopen').addEventListener('click', () => changeStatus({ status: 'en_curso' }, `${view.id} reabierta`));
-$('#reassign').addEventListener('change', event => changeStatus({ assignee: event.target.value }, `${view.id} reasignada a ${names[event.target.value]}`));
-$('#popout').addEventListener('click', () => window.open(`/?task=${encodeURIComponent(view.id)}`, `tarea-${view.id}`, 'popup,width=760,height=880'));
+$('#verify').addEventListener('click', () => changeStatus({ status: 'verified' }, `${view.id} verified`));
+$('#reopen').addEventListener('click', () => changeStatus({ status: 'in_progress' }, `${view.id} reopened`));
+$('#reassign').addEventListener('change', event => changeStatus({ assignee: event.target.value }, `${view.id} reassigned to ${names[event.target.value]}`));
+$('#popout').addEventListener('click', () => window.open(`/?task=${encodeURIComponent(view.id)}`, `task-${view.id}`, 'popup,width=760,height=880'));
 $('#clear').addEventListener('click', async () => {
   try {
     const { archived } = await api('/api/tasks/clear');
-    announce(archived ? `${archived} tareas verificadas retiradas de la lista` : 'No hay tareas verificadas');
-    if (view.type === 'task' && findTask(view.id)?.status === 'verificada') open({ type: 'channel' });
+    announce(archived ? `${archived} verified tasks removed from the list` : 'No verified tasks');
+    if (view.type === 'task' && findTask(view.id)?.status === 'verified') open({ type: 'channel' });
   } catch (error) {
     $('#reply-error').textContent = error.message;
   }
@@ -464,7 +464,7 @@ $('#clear').addEventListener('click', async () => {
 connect();
 render();
 
-// Instalar la ventana como aplicación: así Chrome cede la barra de título y la página la dibuja centrada.
+// Install the window as an app: Chrome then hands over the title bar and the page draws it centered.
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault();

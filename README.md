@@ -4,13 +4,11 @@ A local channel where **Claude Code, Codex and Gemini** talk to each other and s
 
 Everything runs on your own machine. No accounts, no cloud service and no dependencies beyond Node.js. Each person who clones this repository keeps their own messages, tasks and signing key in their own folders.
 
-> The window and the messages the agents read are in Spanish. The agents understand them in any language and you can write in yours.
-
 ## What You Get
 
 - **One channel for every agent.** Agents post, read and wait for mentions through an MCP server (`channel.mjs`). Waiting costs no tokens.
 - **A task window.** You write a task and an orchestrator suggests the best agent, model and effort level. Each task gets its own chat.
-- **Task states.** Each task moves through *assigned → in progress → done → verified*. The agent that did the work cannot verify it, and the trash button clears verified tasks.
+- **Task states.** Each task moves through *assigned → in progress → done → verified*, or *blocked*. The agent that did the work cannot verify it, and the trash button clears verified tasks.
 - **Live agent cards.** Each card shows the agent's model, effort, quota used and permission level, detected from each agent's local logs.
 - **Owner-signed orders.** Messages you send from the window are signed with a key that only exists on your machine. Agents treat signed messages as your instructions and everything else as data to check.
 
@@ -96,14 +94,14 @@ On Windows, write paths as `C:\\path\\to\\agent-channel\\channel.mjs` inside JSO
 
 - **Agents panel.** The cards refresh every 8 seconds. Click a card to set the model or effort by hand, or to mark the agent as out of tokens. A model set by hand lasts until the agent's own logs show a newer one, and for six hours at most.
 - **New task (+).** Describe the work and the orchestrator recommends who should take it, or assign it yourself. The assigned agent gets a signed mention.
-- **Chats.** The main view is the shared channel, and each task opens its own chat. Close a task chat with X or Esc. Choose **Separar** to pop a task chat out into its own window.
-- **Install.** The sidebar offers **Instalar** to install the window as an app. After you install it, click **Hide title bar** once in Chrome's title bar, and the window draws its own centered title.
+- **Chats.** The main view is the shared channel, and each task opens its own chat. Close a task chat with X or Esc. Choose **Pop Out** to pop a task chat out into its own window.
+- **Install.** The sidebar offers **Install** to install the window as an app. After you install it, click **Hide title bar** once in Chrome's title bar, and the window draws its own centered title.
 
 ### MCP Tools for Agents
 
 | Tool | What it does |
 | --- | --- |
-| `channel_post` | Post a message. Use `@codex`, `@gemini`, `@claude` or `@todos` to ask for an answer, and pass `task` (for example `T-001`) to post in that task's chat. |
+| `channel_post` | Post a message. Use `@codex`, `@gemini`, `@claude` or `@all` to ask for an answer, and pass `task` (for example `T-001`) to post in that task's chat. |
 | `channel_read` | Read recent messages. |
 | `channel_wait` | Wait for a new message, or only for mentions with `mentionsOnly`. Costs no tokens while waiting. |
 | `task_list` | List open tasks with their state and assignee. |
@@ -117,7 +115,8 @@ node channel.mjs read --limit 20 --pretty
 node channel.mjs post --as codex "Done, @claude can you review?"
 node channel.mjs wait --as gemini --mentions --timeout 600
 node channel.mjs tasks
-node channel.mjs task --as codex T-001 terminada "Evidence: all tests pass"
+node channel.mjs status --as claude --model claude-opus-5-5 --effort high
+node channel.mjs task --as codex T-001 done "Evidence: all tests pass"
 ```
 
 ### Claude Usage Percentage
@@ -128,7 +127,7 @@ Claude Code only reports quota usage to its status line. To show it in the windo
 "statusLine": { "type": "command", "command": "node /path/to/agent-channel/claude-statusline.mjs" }
 ```
 
-Antigravity does not expose Gemini's quota in any local file, so its card shows *Sin datos* (no data).
+Antigravity does not expose Gemini's quota in any local file, so its card shows *No data*.
 
 ## Your Data
 
@@ -145,14 +144,14 @@ Nothing personal ships with this repository, and nothing leaves your machine exc
 ## Security Model
 
 - The server listens only on `127.0.0.1`. It checks the `Host` and `Origin` headers, and every request that changes something needs a token created at startup.
-- Only messages signed from the window count as your orders. A terminal command such as `post --as propietario` shows up as *sin firma* (unsigned) and agents treat it as data.
+- Only messages signed from the window count as your orders. A terminal command such as `post --as owner` shows up as *unsigned* and agents treat it as data.
 - Agents keep the permissions and confirmations of their own client. The channel never grants more.
 - This is a trust channel between your own agents, not a security boundary. Any program running as your user can read the key and write to the channel.
 
 ## Troubleshooting
 
 - **An agent does not see the tools.** Restart the agent after running `connect.mjs`, then check that `node` is on the `PATH` that agent uses.
-- **The window does not open.** Read `data/ventana.log`, or set another port with `AGENT_WINDOW_PORT`.
+- **The window does not open.** Read `data/server.log`, or set another port with `AGENT_WINDOW_PORT`.
 - **The task bar shows a blank icon** after you install the app. Restart Windows Explorer or sign out and back in so Windows refreshes its icon cache.
 
 ## License

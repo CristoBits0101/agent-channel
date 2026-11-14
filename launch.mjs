@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Abre la ventana del canal en Windows, macOS o Linux:
-// 1. arranca el servidor local (ventana.mjs) si no está escuchando ya;
-// 2. descarga una vez el logotipo de Gemini en la carpeta de datos (no se redistribuye);
-// 3. abre la ventana como aplicación de Chrome, Edge, Chromium o Brave con un perfil propio,
-//    o la aplicación instalada si ya se instaló; si no hay ninguno, usa el navegador por defecto.
+// Opens the channel window on Windows, macOS or Linux:
+// 1. starts the local server (server.mjs) if it is not listening yet;
+// 2. downloads the Gemini logo once into the data folder (it is not redistributed);
+// 3. opens the window as a Chrome, Edge, Chromium or Brave app with its own profile,
+//    or the installed app if it was installed; without any of them, it uses the default browser.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
 import { connect } from 'node:net';
@@ -15,7 +15,7 @@ import { dataDir } from './lib/store.mjs';
 const directory = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.AGENT_WINDOW_PORT || 18544);
 const url = `http://127.0.0.1:${port}/`;
-// Chrome deriva este identificador de la dirección de la aplicación (id del manifiesto).
+// Chrome derives this id from the app address (the manifest id).
 const appId = 'algdbkknlnkkchepcoilcggjpdmoohgf';
 const geminiLogo = 'https://www.gstatic.com/lamda/images/gemini_sparkle_4g_512_lt_f94943af3be039176192d.png';
 
@@ -29,13 +29,13 @@ const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, millise
 async function startServer() {
   if (await listening()) return;
   mkdirSync(dataDir, { recursive: true });
-  const log = openSync(join(dataDir, 'ventana.log'), 'a');
-  spawn(process.execPath, [join(directory, 'ventana.mjs')], { detached: true, stdio: ['ignore', log, log], windowsHide: true }).unref();
+  const log = openSync(join(dataDir, 'server.log'), 'a');
+  spawn(process.execPath, [join(directory, 'server.mjs')], { detached: true, stdio: ['ignore', log, log], windowsHide: true }).unref();
   for (let attempt = 0; attempt < 40; attempt++) {
     if (await listening()) return;
     await sleep(150);
   }
-  throw new Error(`El servidor no arrancó; revisa ${join(dataDir, 'ventana.log')}`);
+  throw new Error(`The server did not start; check ${join(dataDir, 'server.log')}`);
 }
 
 async function downloadGeminiLogo() {
@@ -84,11 +84,11 @@ await startServer();
 await downloadGeminiLogo();
 const browser = findBrowser();
 if (!browser) {
-  process.stdout.write(`No se encontró Chrome, Edge, Chromium ni Brave; abriendo ${url} en el navegador por defecto.\n`);
+  process.stdout.write(`Chrome, Edge, Chromium or Brave not found; opening ${url} in the default browser.\n`);
   openDefaultBrowser();
 } else {
   const installed = existsSync(join(windowProfileDir, 'Default', 'Web Applications', 'Manifest Resources', appId));
   const target = installed ? `--app-id=${appId}` : `--app=${url}`;
   spawn(browser, [target, `--user-data-dir=${windowProfileDir}`, '--no-first-run', '--no-default-browser-check', '--window-size=1280,860'], { detached: true, stdio: 'ignore' }).unref();
-  process.stdout.write(`Ventana abierta: ${url}\n`);
+  process.stdout.write(`Window open: ${url}\n`);
 }

@@ -1,120 +1,120 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <meta name="ventana-token" content="__TOKEN__">
-  <title>CANAL DE AGENTES</title>
+  <meta name="window-token" content="__TOKEN__">
+  <title>AGENT CHANNEL</title>
   <meta name="theme-color" content="#efece5" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#151412" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="icon" href="/icono.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/icono-192.png">
-  <link rel="stylesheet" href="/ventana.css">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/app.css">
   <script src="/logos.js" defer></script>
-  <script src="/ventana.js" defer></script>
+  <script src="/app.js" defer></script>
 </head>
 <body>
-  <a class="skip" href="#chat">Ir al chat</a>
-  <h1 class="sr-only">Canal de Agentes</h1>
-  <div class="titlebar" aria-hidden="true">Canal de Agentes</div>
+  <a class="skip" href="#chat">Skip to chat</a>
+  <h1 class="sr-only">Agent Channel</h1>
+  <div class="titlebar" aria-hidden="true">Agent Channel</div>
   <div class="layout">
-    <aside class="sidebar" aria-label="Agentes y tareas">
+    <aside class="sidebar" aria-label="Agents and tasks">
       <section aria-labelledby="agents-title">
         <div class="section-head">
-          <h2 id="agents-title">Agentes</h2>
-          <span id="connection" class="live" role="status">Conectando</span>
+          <h2 id="agents-title">Agents</h2>
+          <span id="connection" class="live" role="status">Connecting</span>
         </div>
         <ul id="agents" class="agents"></ul>
       </section>
 
       <section aria-labelledby="tasks-title" class="tasks-section">
         <div class="section-head">
-          <h2 id="tasks-title">Tareas <span id="task-count" class="count"></span></h2>
+          <h2 id="tasks-title">Tasks <span id="task-count" class="count"></span></h2>
           <div class="head-actions">
-            <button id="new-task" type="button" class="round add" aria-label="Crear tarea" title="Crear tarea">
+            <button id="new-task" type="button" class="round add" aria-label="Create task" title="Create task">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             </button>
-            <button id="clear" type="button" class="round trash" aria-label="Limpiar tareas verificadas" title="Limpiar tareas verificadas">
+            <button id="clear" type="button" class="round trash" aria-label="Clear verified tasks" title="Clear verified tasks">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
             </button>
           </div>
         </div>
-        <nav aria-label="Tareas">
+        <nav aria-label="Tasks">
           <ul id="tasks" class="tasks"></ul>
-          <p id="no-tasks" class="no-tasks" hidden>No hay tareas programadas</p>
+          <p id="no-tasks" class="no-tasks" hidden>No scheduled tasks</p>
         </nav>
       </section>
-      <button type="button" id="install" class="install" hidden title="Instala la ventana como aplicación para tener la barra de título centrada">Instalar</button>
+      <button type="button" id="install" class="install" hidden title="Install the window as an app to get the centered title bar">Install</button>
     </aside>
 
     <main id="chat" tabindex="-1">
       <section id="compose-view" hidden aria-labelledby="compose-title">
         <header class="thread-head">
-          <h2 id="compose-title" class="thread-title">Nueva Tarea</h2>
-          <button id="compose-back" type="button" class="round" aria-label="Volver" title="Volver">
+          <h2 id="compose-title" class="thread-title">New Task</h2>
+          <button id="compose-back" type="button" class="round" aria-label="Back" title="Back">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </header>
         <form id="compose" class="compose">
-          <label for="task-title-input">Título (opcional):</label>
+          <label for="task-title-input">Title (optional):</label>
           <input id="task-title-input" name="title" maxlength="140" autocomplete="off">
-          <label for="task-text">Qué hay que hacer:</label>
+          <label for="task-text">What needs doing:</label>
           <textarea id="task-text" name="text" rows="8" required maxlength="8000"></textarea>
           <div id="advice" class="advice" aria-live="polite"></div>
-          <label for="task-assignee">Asignar a:</label>
+          <label for="task-assignee">Assign to:</label>
           <select id="task-assignee" name="assignee">
-            <option value="">Recomendación del orquestador</option>
+            <option value="">Orchestrator recommendation</option>
             <option value="claude">Claude</option>
             <option value="codex">Codex</option>
             <option value="gemini">Gemini</option>
           </select>
           <div class="form-actions">
-            <button type="submit" class="primary">Crear</button>
-            <button type="button" id="compose-cancel">Cancelar</button>
-            <span class="hint">Ctrl + Intro crea · Esc vuelve</span>
+            <button type="submit" class="primary">Create</button>
+            <button type="button" id="compose-cancel">Cancel</button>
+            <span class="hint">Ctrl + Enter creates · Esc goes back</span>
           </div>
           <p id="compose-error" class="error" role="alert"></p>
         </form>
       </section>
 
-      <section id="thread-view" aria-label="Conversación">
+      <section id="thread-view" aria-label="Conversation">
         <header id="thread-head" class="thread-head">
           <div class="thread-heading">
             <h2 id="thread-title" class="thread-title"></h2>
             <p id="thread-meta" class="thread-meta"></p>
           </div>
           <div class="thread-actions">
-            <label class="sr-only" for="reassign">Reasignar tarea</label>
+            <label class="sr-only" for="reassign">Reassign task</label>
             <select id="reassign">
               <option value="claude">Claude</option>
               <option value="codex">Codex</option>
               <option value="gemini">Gemini</option>
             </select>
-            <button id="verify" type="button" class="success">Verificar</button>
-            <button id="reopen" type="button">Reabrir</button>
-            <button id="popout" type="button" title="Abrir esta tarea en otra ventana">Separar</button>
-            <button id="thread-close" type="button" class="round" aria-label="Volver al canal de agentes" title="Volver al canal de agentes">
+            <button id="verify" type="button" class="success">Verify</button>
+            <button id="reopen" type="button">Reopen</button>
+            <button id="popout" type="button" title="Open this task in another window">Pop Out</button>
+            <button id="thread-close" type="button" class="round" aria-label="Back to the agent channel" title="Back to the agent channel">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
           </div>
         </header>
-        <ol id="messages" class="messages" aria-label="Mensajes"></ol>
-        <p id="empty" class="empty" hidden>Aún no hay mensajes en esta tarea.</p>
+        <ol id="messages" class="messages" aria-label="Messages"></ol>
+        <p id="empty" class="empty" hidden>No messages in this task yet.</p>
         <form id="reply" class="reply">
           <div class="reply-box">
-            <label for="reply-text" class="sr-only">Mensaje</label>
-            <textarea id="reply-text" rows="1" required maxlength="8000" placeholder="Escribe un mensaje…"></textarea>
+            <label for="reply-text" class="sr-only">Message</label>
+            <textarea id="reply-text" rows="1" required maxlength="8000" placeholder="Write a message…"></textarea>
             <div class="reply-actions">
-              <label for="reply-to" class="sr-only">Destinatario</label>
+              <label for="reply-to" class="sr-only">Recipient</label>
               <select id="reply-to">
-                <option value="todos">Todos</option>
+                <option value="all">All</option>
                 <option value="claude">Claude</option>
                 <option value="codex">Codex</option>
                 <option value="gemini">Gemini</option>
               </select>
-              <button type="submit" class="round send" aria-label="Enviar" title="Enviar"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg></button>
+              <button type="submit" class="round send" aria-label="Send" title="Send"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg></button>
             </div>
           </div>
           <p id="reply-error" class="error" role="alert"></p>
@@ -125,9 +125,9 @@
 
   <dialog id="agent-dialog" aria-labelledby="agent-dialog-title">
     <form id="agent-form" method="dialog">
-      <h2 id="agent-dialog-title" class="dialog-title">Modelo de Agente</h2>
+      <h2 id="agent-dialog-title" class="dialog-title">Agent Model</h2>
       <p id="agent-source" class="hint"></p>
-      <label for="agent-model">Modelo:</label>
+      <label for="agent-model">Model:</label>
       <input id="agent-model" name="model" list="known-models" maxlength="80" autocomplete="off">
       <datalist id="known-models">
         <option value="claude-opus-5-5"></option>
@@ -139,20 +139,20 @@
         <option value="gemini-4-argon"></option>
         <option value="gemini-3.8-flash"></option>
       </datalist>
-      <label for="agent-effort">Esfuerzo:</label>
+      <label for="agent-effort">Effort:</label>
       <select id="agent-effort" name="effort">
-        <option value="">Sin indicar</option>
+        <option value="">Not set</option>
         <option value="low">low</option>
         <option value="medium">medium</option>
         <option value="high">high</option>
         <option value="xhigh">xhigh</option>
         <option value="ultra">ultra</option>
       </select>
-      <label class="check-row"><input id="agent-out" type="checkbox" name="outOfTokens"> Sin tokens</label>
+      <label class="check-row"><input id="agent-out" type="checkbox" name="outOfTokens"> Out of tokens</label>
       <div class="form-actions">
-        <button type="submit" class="primary" value="save">Guardar</button>
-        <button type="submit" value="clear" title="Volver a la detección automática">Detectar</button>
-        <button type="submit" value="cancel" formnovalidate>Cancelar</button>
+        <button type="submit" class="primary" value="save">Save</button>
+        <button type="submit" value="clear" title="Go back to automatic detection">Detect</button>
+        <button type="submit" value="cancel" formnovalidate>Cancel</button>
       </div>
     </form>
   </dialog>
