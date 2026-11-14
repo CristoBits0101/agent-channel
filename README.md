@@ -26,12 +26,12 @@ Everything runs on your own machine. No accounts, no cloud service and no depend
 The recommended way is npm. It needs nothing beyond Node.js, costs nothing and installs no executable of its own.
 
 ```bash
-npm install -g agent-channel
+npm install -g mcp-agent-channel
 agent-channel install
 agent-channel connect
 ```
 
-1. `npm install -g agent-channel` downloads the app.
+1. `npm install -g mcp-agent-channel` downloads the app.
 2. `agent-channel install` adds **Agent Channel** to your desktop and your app menu.
 3. `agent-channel connect` finds the agents on your machine. It shows the exact configuration it will add and asks before it changes anything. Restart each agent afterwards so it loads the channel.
 
@@ -59,9 +59,9 @@ Shortcuts point at the full path of the Node.js that ran the installer. If you c
 ### Update and Uninstall
 
 ```bash
-npm update -g agent-channel      # update; your data stays
-agent-channel uninstall          # remove the shortcuts
-npm uninstall -g agent-channel   # remove the app
+npm update -g mcp-agent-channel     # update; your data stays
+agent-channel uninstall             # remove the shortcuts
+npm uninstall -g mcp-agent-channel  # remove the app
 ```
 
 ### From Source
@@ -87,7 +87,7 @@ Before `connect.mjs` changes a configuration file, it saves a copy next to it wi
 
 ### Manual Setup
 
-Each agent runs the same server with its own identity: `node /path/to/agent-channel/channel.mjs mcp --as <claude|codex|gemini>`. With npm, `/path/to/agent-channel` is the `agent-channel` folder inside `npm root -g`.
+Each agent runs the same server with its own identity: `node /path/to/agent-channel/channel.mjs mcp --as <claude|codex|gemini>`. With npm, `/path/to/agent-channel` is the `mcp-agent-channel` folder inside `npm root -g`.
 
 **Claude Code**
 
