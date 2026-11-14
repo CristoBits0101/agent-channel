@@ -41,6 +41,24 @@ Then open the window:
 
 The launcher starts the local server on `http://127.0.0.1:18544/` if it is not already running. It then opens the window with its own browser profile, without extensions.
 
+### Install as a Desktop App
+
+```bash
+node install.mjs              # desktop shortcut and app menu entry
+node install.mjs --autostart  # also start the server when you sign in
+node install.mjs --uninstall  # remove everything the installer created
+```
+
+The installer works for the current user and needs no administrator rights. It creates:
+
+| System | App menu | Desktop | With `--autostart` |
+| --- | --- | --- | --- |
+| Windows | Start menu shortcut | Desktop shortcut | Shortcut in the Startup folder |
+| macOS | `~/Applications/Agent Channel.app` | Not created; drag the app to the Dock | `~/Library/LaunchAgents/com.agent-channel.server.plist` |
+| Linux | `~/.local/share/applications/agent-channel.desktop` | `agent-channel.desktop` in your desktop folder | `~/.config/autostart/agent-channel-server.desktop` |
+
+Every shortcut runs `node launch.mjs` with the full path of the Node.js that ran the installer. If you move the clone or change your Node.js install, run `node install.mjs` again. Shortcuts never go through a hidden shell, so antivirus heuristics have nothing unusual to flag.
+
 ### Connect Options
 
 ```bash

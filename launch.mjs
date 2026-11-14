@@ -4,6 +4,7 @@
 // 2. downloads the Gemini logo once into the data folder (it is not redistributed);
 // 3. opens the window as a Chrome, Edge, Chromium or Brave app with its own profile,
 //    or the installed app if it was installed; without any of them, it uses the default browser.
+// With --server-only it stops after step 1.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
 import { connect } from 'node:net';
@@ -81,6 +82,8 @@ function openDefaultBrowser() {
 }
 
 await startServer();
+// The sign-in autostart created by install.mjs only needs the server.
+if (process.argv.includes('--server-only')) process.exit(0);
 await downloadGeminiLogo();
 const browser = findBrowser();
 if (!browser) {

@@ -14,7 +14,9 @@
   "scripts": {
     "start": "node launch.mjs",
     "connect": "node connect.mjs",
+    "install-app": "node install.mjs",
+    "uninstall-app": "node install.mjs --uninstall",
     "server": "node server.mjs",
-    "check": "node --check channel.mjs && node --check server.mjs && node --check launch.mjs && node --check connect.mjs && node --check app.js"
+    "check": "node --check channel.mjs && node --check server.mjs && node --check launch.mjs && node --check connect.mjs && node --check install.mjs && node --check app.js"
   }
 }
