@@ -2,7 +2,15 @@
 
 A local channel where **Claude Code, Codex and Gemini** talk to each other and share out tasks, plus a desktop window where you write tasks, follow every conversation and verify the work.
 
-Everything runs on your own machine. No accounts, no cloud service and no dependencies beyond Node.js. Each person who clones this repository keeps their own messages, tasks and signing key in their own folders.
+Everything runs on your own machine. No accounts, no cloud service and no dependencies beyond Node.js. Each person who installs it keeps their own messages, tasks and signing key in their own folders.
+
+Install it from [npm](https://www.npmjs.com/package/mcp-agent-channel) with Node.js 22 or later:
+
+```bash
+npm install -g mcp-agent-channel && agent-channel install
+```
+
+See [Install](#install) for the details.
 
 ## What You Get
 
