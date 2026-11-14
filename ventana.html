@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="ventana-token" content="__TOKEN__">
+  <title>CANAL DE AGENTES</title>
+  <meta name="theme-color" content="#efece5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#151412" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icono.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icono-192.png">
+  <link rel="stylesheet" href="/ventana.css">
+  <script src="/logos.js" defer></script>
+  <script src="/ventana.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#chat">Ir al chat</a>
+  <h1 class="sr-only">Canal de Agentes</h1>
+  <div class="titlebar" aria-hidden="true">Canal de Agentes</div>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Agentes y tareas">
+      <section aria-labelledby="agents-title">
+        <div class="section-head">
+          <h2 id="agents-title">Agentes</h2>
+          <span id="connection" class="live" role="status">Conectando</span>
+        </div>
+        <ul id="agents" class="agents"></ul>
+      </section>
+
+      <section aria-labelledby="tasks-title" class="tasks-section">
+        <div class="section-head">
+          <h2 id="tasks-title">Tareas <span id="task-count" class="count"></span></h2>
+          <div class="head-actions">
+            <button id="new-task" type="button" class="round add" aria-label="Crear tarea" title="Crear tarea">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            </button>
+            <button id="clear" type="button" class="round trash" aria-label="Limpiar tareas verificadas" title="Limpiar tareas verificadas">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            </button>
+          </div>
+        </div>
+        <nav aria-label="Tareas">
+          <ul id="tasks" class="tasks"></ul>
+          <p id="no-tasks" class="no-tasks" hidden>No hay tareas programadas</p>
+        </nav>
+      </section>
+      <button type="button" id="install" class="install" hidden title="Instala la ventana como aplicación para tener la barra de título centrada">Instalar</button>
+    </aside>
+
+    <main id="chat" tabindex="-1">
+      <section id="compose-view" hidden aria-labelledby="compose-title">
+        <header class="thread-head">
+          <h2 id="compose-title" class="thread-title">Nueva Tarea</h2>
+          <button id="compose-back" type="button" class="round" aria-label="Volver" title="Volver">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </header>
+        <form id="compose" class="compose">
+          <label for="task-title-input">Título (opcional):</label>
+          <input id="task-title-input" name="title" maxlength="140" autocomplete="off">
+          <label for="task-text">Qué hay que hacer:</label>
+          <textarea id="task-text" name="text" rows="8" required maxlength="8000"></textarea>
+          <div id="advice" class="advice" aria-live="polite"></div>
+          <label for="task-assignee">Asignar a:</label>
+          <select id="task-assignee" name="assignee">
+            <option value="">Recomendación del orquestador</option>
+            <option value="claude">Claude</option>
+            <option value="codex">Codex</option>
+            <option value="gemini">Gemini</option>
+          </select>
+          <div class="form-actions">
+            <button type="submit" class="primary">Crear</button>
+            <button type="button" id="compose-cancel">Cancelar</button>
+            <span class="hint">Ctrl + Intro crea · Esc vuelve</span>
+          </div>
+          <p id="compose-error" class="error" role="alert"></p>
+        </form>
+      </section>
+
+      <section id="thread-view" aria-label="Conversación">
+        <header id="thread-head" class="thread-head">
+          <div class="thread-heading">
+            <h2 id="thread-title" class="thread-title"></h2>
+            <p id="thread-meta" class="thread-meta"></p>
+          </div>
+          <div class="thread-actions">
+            <label class="sr-only" for="reassign">Reasignar tarea</label>
+            <select id="reassign">
+              <option value="claude">Claude</option>
+              <option value="codex">Codex</option>
+              <option value="gemini">Gemini</option>
+            </select>
+            <button id="verify" type="button" class="success">Verificar</button>
+            <button id="reopen" type="button">Reabrir</button>
+            <button id="popout" type="button" title="Abrir esta tarea en otra ventana">Separar</button>
+            <button id="thread-close" type="button" class="round" aria-label="Volver al canal de agentes" title="Volver al canal de agentes">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          </div>
+        </header>
+        <ol id="messages" class="messages" aria-label="Mensajes"></ol>
+        <p id="empty" class="empty" hidden>Aún no hay mensajes en esta tarea.</p>
+        <form id="reply" class="reply">
+          <div class="reply-box">
+            <label for="reply-text" class="sr-only">Mensaje</label>
+            <textarea id="reply-text" rows="1" required maxlength="8000" placeholder="Escribe un mensaje…"></textarea>
+            <div class="reply-actions">
+              <label for="reply-to" class="sr-only">Destinatario</label>
+              <select id="reply-to">
+                <option value="todos">Todos</option>
+                <option value="claude">Claude</option>
+                <option value="codex">Codex</option>
+                <option value="gemini">Gemini</option>
+              </select>
+              <button type="submit" class="round send" aria-label="Enviar" title="Enviar"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg></button>
+            </div>
+          </div>
+          <p id="reply-error" class="error" role="alert"></p>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="agent-dialog" aria-labelledby="agent-dialog-title">
+    <form id="agent-form" method="dialog">
+      <h2 id="agent-dialog-title" class="dialog-title">Modelo de Agente</h2>
+      <p id="agent-source" class="hint"></p>
+      <label for="agent-model">Modelo:</label>
+      <input id="agent-model" name="model" list="known-models" maxlength="80" autocomplete="off">
+      <datalist id="known-models">
+        <option value="claude-opus-5-5"></option>
+        <option value="claude-sonnet-5-5"></option>
+        <option value="claude-haiku-5-5"></option>
+        <option value="claude-fable-5-2"></option>
+        <option value="gpt-6.1-sol"></option>
+        <option value="gemini-4-carbon"></option>
+        <option value="gemini-4-argon"></option>
+        <option value="gemini-3.8-flash"></option>
+      </datalist>
+      <label for="agent-effort">Esfuerzo:</label>
+      <select id="agent-effort" name="effort">
+        <option value="">Sin indicar</option>
+        <option value="low">low</option>
+        <option value="medium">medium</option>
+        <option value="high">high</option>
+        <option value="xhigh">xhigh</option>
+        <option value="ultra">ultra</option>
+      </select>
+      <label class="check-row"><input id="agent-out" type="checkbox" name="outOfTokens"> Sin tokens</label>
+      <div class="form-actions">
+        <button type="submit" class="primary" value="save">Guardar</button>
+        <button type="submit" value="clear" title="Volver a la detección automática">Detectar</button>
+        <button type="submit" value="cancel" formnovalidate>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+  <p id="announce" class="sr-only" role="status" aria-live="polite"></p>
+</body>
+</html>

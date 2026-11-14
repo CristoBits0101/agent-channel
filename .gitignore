@@ -1,0 +1,12 @@
+# Datos de cada usuario: mensajes, tareas, uso de cuota, logotipos descargados y logs.
+data/
+*.log
+*.jsonl
+
+# Claves y copias de seguridad que deja connect.mjs.
+*.key
+*.bak-agent-channel
+
+node_modules/
+.DS_Store
+Thumbs.db

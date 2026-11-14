@@ -1,0 +1,20 @@
+{
+  "name": "agent-channel",
+  "version": "1.2.0",
+  "description": "Local MCP channel and task window for Claude, Codex and Gemini agents",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "agent-channel": "channel.mjs"
+  },
+  "scripts": {
+    "start": "node launch.mjs",
+    "connect": "node connect.mjs",
+    "server": "node ventana.mjs",
+    "check": "node --check channel.mjs && node --check ventana.mjs && node --check launch.mjs && node --check connect.mjs && node --check ventana.js"
+  }
+}
