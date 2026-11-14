@@ -1,6 +1,9 @@
 #!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import readline from 'node:readline';
+import { fileURLToPath } from 'node:url';
 import { detectAgents, modelTag } from './lib/detect.mjs';
 import { channelFile, participants, postMessage, readLines, readMessages } from './lib/messages.mjs';
 import { isOwnerSigned } from './lib/owner.mjs';
@@ -178,6 +181,19 @@ async function readStandardInput() {
   return text;
 }
 
+// Setup commands run the sibling scripts, so `agent-channel <command>` works after `npm install -g`.
+const setup = {
+  install: ['install.mjs', []],
+  uninstall: ['install.mjs', ['--uninstall']],
+  open: ['launch.mjs', []],
+  connect: ['connect.mjs', []],
+};
+if (setup[process.argv[2]]) {
+  const [script, extra] = setup[process.argv[2]];
+  const result = spawnSync(process.execPath, [join(dirname(fileURLToPath(import.meta.url)), script), ...extra, ...process.argv.slice(3)], { stdio: 'inherit' });
+  process.exit(result.status ?? 1);
+}
+
 const options = parseArguments(process.argv.slice(2));
 const command = options._[0];
 if (command === 'post') {
@@ -211,4 +227,4 @@ if (command === 'post') {
 } else if (command === 'watch') await watch(options);
 else if (command === 'wait') await wait(options);
 else if (command === 'mcp') serveMcp(options);
-else fail('Usage: channel.mjs post|read|watch|wait|mcp|tasks|task|status. See README.md');
+else fail('Usage: agent-channel install|uninstall|open|connect|post|read|watch|wait|mcp|tasks|task|status. See README.md');

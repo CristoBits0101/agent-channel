@@ -1,22 +1,51 @@
 {
   "name": "agent-channel",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Local MCP channel and task window for Claude, Codex and Gemini agents",
   "type": "module",
-  "private": true,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CristoBits0101/agent-channel.git"
+  },
+  "homepage": "https://github.com/CristoBits0101/agent-channel#readme",
+  "bugs": "https://github.com/CristoBits0101/agent-channel/issues",
+  "keywords": [
+    "mcp",
+    "agents",
+    "claude",
+    "codex",
+    "gemini"
+  ],
   "engines": {
     "node": ">=22"
   },
   "bin": {
     "agent-channel": "channel.mjs"
   },
+  "files": [
+    "*.mjs",
+    "lib/",
+    "assets/",
+    "app.css",
+    "app.js",
+    "index.html",
+    "logos.js",
+    "manifest.webmanifest",
+    "icon.ico",
+    "icon.svg",
+    "icon-192.png",
+    "icon-512.png",
+    "open-window.cmd",
+    "open-window.command",
+    "open-window.sh"
+  ],
   "scripts": {
     "start": "node launch.mjs",
     "connect": "node connect.mjs",
     "install-app": "node install.mjs",
     "uninstall-app": "node install.mjs --uninstall",
     "server": "node server.mjs",
-    "check": "node --check channel.mjs && node --check server.mjs && node --check launch.mjs && node --check connect.mjs && node --check install.mjs && node --check app.js"
+    "check": "node --check channel.mjs && node --check server.mjs && node --check launch.mjs && node --check connect.mjs && node --check install.mjs && node --check lib/shortcut.mjs && node --check app.js"
   }
 }

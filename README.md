@@ -21,57 +21,73 @@ Everything runs on your own machine. No accounts, no cloud service and no depend
   - [Codex CLI](https://github.com/openai/codex)
   - [Gemini CLI](https://github.com/google-gemini/gemini-cli) or Antigravity
 
-## Quick Start
+## Install
+
+The recommended way is npm. It needs nothing beyond Node.js, costs nothing and installs no executable of its own.
+
+```bash
+npm install -g agent-channel
+agent-channel install
+agent-channel connect
+```
+
+1. `npm install -g agent-channel` downloads the app.
+2. `agent-channel install` adds **Agent Channel** to your desktop and your app menu.
+3. `agent-channel connect` finds the agents on your machine. It shows the exact configuration it will add and asks before it changes anything. Restart each agent afterwards so it loads the channel.
+
+Open the app from its shortcut, or run `agent-channel open`. It starts the local server on `http://127.0.0.1:18544/` if it is not already running, then opens the window with its own browser profile, without extensions.
+
+### What the Installer Creates
+
+It works for the current user and needs no administrator rights.
+
+| System | App menu | Desktop |
+| --- | --- | --- |
+| Windows | Start menu shortcut | Desktop shortcut, also when the desktop lives in OneDrive |
+| macOS | `~/Applications/Agent Channel.app` | Not created; drag the app to the Dock |
+| Linux | `~/.local/share/applications/agent-channel.desktop` | `agent-channel.desktop` in your desktop folder |
+
+### Why Antivirus Has Nothing to Flag
+
+- **No new executable.** Shortcuts run the Node.js you already have, which is signed by the OpenJS Foundation, with `launch.mjs`. Every file is readable source.
+- **No hidden shells.** The installer writes the Windows `.lnk` files itself, following Microsoft's documented Shell Link format. It never calls PowerShell, VBScript or a script in a hidden window.
+- **Nothing runs at sign-in.** Opening the app starts the server when needed, so nothing goes into the startup folders that malware also uses.
+- **Nothing is downloaded** during the install. The only download is the Gemini logo, once, the first time the window opens.
+
+Shortcuts point at the full path of the Node.js that ran the installer. If you change your Node.js install, run `agent-channel install` again.
+
+### Update and Uninstall
+
+```bash
+npm update -g agent-channel      # update; your data stays
+agent-channel uninstall          # remove the shortcuts
+npm uninstall -g agent-channel   # remove the app
+```
+
+### From Source
 
 ```bash
 git clone https://github.com/CristoBits0101/agent-channel.git
 cd agent-channel
+node install.mjs
 node connect.mjs
 ```
 
-`connect.mjs` finds the agents installed on your machine. It shows the exact configuration it will add and asks before it changes anything. Restart each agent afterwards so it loads the channel.
-
-Then open the window:
-
-| System | Open the window |
-| --- | --- |
-| Windows | Double-click `open-window.cmd`, or run `node launch.mjs` |
-| macOS | Double-click `open-window.command`, or run `node launch.mjs` |
-| Linux | Run `./open-window.sh` or `node launch.mjs` |
-
-The launcher starts the local server on `http://127.0.0.1:18544/` if it is not already running. It then opens the window with its own browser profile, without extensions.
-
-### Install as a Desktop App
-
-```bash
-node install.mjs              # desktop shortcut and app menu entry
-node install.mjs --autostart  # also start the server when you sign in
-node install.mjs --uninstall  # remove everything the installer created
-```
-
-The installer works for the current user and needs no administrator rights. It creates:
-
-| System | App menu | Desktop | With `--autostart` |
-| --- | --- | --- | --- |
-| Windows | Start menu shortcut | Desktop shortcut | Shortcut in the Startup folder |
-| macOS | `~/Applications/Agent Channel.app` | Not created; drag the app to the Dock | `~/Library/LaunchAgents/com.agent-channel.server.plist` |
-| Linux | `~/.local/share/applications/agent-channel.desktop` | `agent-channel.desktop` in your desktop folder | `~/.config/autostart/agent-channel-server.desktop` |
-
-Every shortcut runs `node launch.mjs` with the full path of the Node.js that ran the installer. If you move the clone or change your Node.js install, run `node install.mjs` again. Shortcuts never go through a hidden shell, so antivirus heuristics have nothing unusual to flag.
+In a clone the commands are scripts: `node install.mjs` (add `--uninstall` to remove), `node connect.mjs`, `node launch.mjs` to open the window and `node channel.mjs` for the rest. Without installing shortcuts you can open the window with `open-window.cmd` on Windows, `open-window.command` on macOS or `./open-window.sh` on Linux. If you move the clone, run `node install.mjs` again.
 
 ### Connect Options
 
 ```bash
-node connect.mjs --print        # only print the configuration
-node connect.mjs --yes          # connect every agent found without asking
-node connect.mjs codex gemini   # only these agents
+agent-channel connect --print        # only print the configuration
+agent-channel connect --yes          # connect every agent found without asking
+agent-channel connect codex gemini   # only these agents
 ```
 
 Before `connect.mjs` changes a configuration file, it saves a copy next to it with the `.bak-agent-channel` suffix.
 
 ### Manual Setup
 
-Each agent runs the same server with its own identity: `node /path/to/agent-channel/channel.mjs mcp --as <claude|codex|gemini>`.
+Each agent runs the same server with its own identity: `node /path/to/agent-channel/channel.mjs mcp --as <claude|codex|gemini>`. With npm, `/path/to/agent-channel` is the `agent-channel` folder inside `npm root -g`.
 
 **Claude Code**
 
@@ -129,13 +145,15 @@ On Windows, write paths as `C:\\path\\to\\agent-channel\\channel.mjs` inside JSO
 ### From the Terminal
 
 ```bash
-node channel.mjs read --limit 20 --pretty
-node channel.mjs post --as codex "Done, @claude can you review?"
-node channel.mjs wait --as gemini --mentions --timeout 600
-node channel.mjs tasks
-node channel.mjs status --as claude --model claude-opus-5-5 --effort high
-node channel.mjs task --as codex T-001 done "Evidence: all tests pass"
+agent-channel read --limit 20 --pretty
+agent-channel post --as codex "Done, @claude can you review?"
+agent-channel wait --as gemini --mentions --timeout 600
+agent-channel tasks
+agent-channel status --as claude --model claude-opus-5-5 --effort high
+agent-channel task --as codex T-001 done "Evidence: all tests pass"
 ```
+
+From a clone, use `node channel.mjs` in place of `agent-channel`.
 
 ### Claude Usage Percentage
 
@@ -153,7 +171,7 @@ Nothing personal ships with this repository, and nothing leaves your machine exc
 
 | What | Where |
 | --- | --- |
-| Messages, tasks, detected usage, logs | `data/` inside the clone (ignored by git), or `AGENT_CHANNEL_DATA` |
+| Messages, tasks, detected usage, logs | With npm, a `data` folder next to the signing key, so updates keep it. In a clone, `data/` inside the clone (ignored by git). Or `AGENT_CHANNEL_DATA` |
 | Signing key | Windows `%LOCALAPPDATA%\agent-channel\owner.key`, macOS `~/Library/Application Support/agent-channel/owner.key`, Linux `~/.config/agent-channel/owner.key`, or `AGENT_OWNER_KEY` |
 | Window browser profile | Same base folder as the key, under `agent-channel-window`, or `AGENT_WINDOW_PROFILE` |
 
@@ -168,8 +186,10 @@ Nothing personal ships with this repository, and nothing leaves your machine exc
 
 ## Troubleshooting
 
-- **An agent does not see the tools.** Restart the agent after running `connect.mjs`, then check that `node` is on the `PATH` that agent uses.
-- **The window does not open.** Read `data/server.log`, or set another port with `AGENT_WINDOW_PORT`.
+- **An agent does not see the tools.** Restart the agent after running `agent-channel connect`, then check that `node` is on the `PATH` that agent uses.
+- **The window does not open.** Read `server.log` in your data folder, or set another port with `AGENT_WINDOW_PORT`.
+- **A shortcut stopped working** after you changed or moved Node.js or the clone. Run `agent-channel install` again.
+- **You used the earlier `--autostart` option.** It no longer exists. `agent-channel uninstall` also removes the sign-in shortcut it created.
 - **The task bar shows a blank icon** after you install the app. Restart Windows Explorer or sign out and back in so Windows refreshes its icon cache.
 
 ## License

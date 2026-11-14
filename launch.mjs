@@ -82,7 +82,7 @@ function openDefaultBrowser() {
 }
 
 await startServer();
-// The sign-in autostart created by install.mjs only needs the server.
+// Only start the server (used by the sign-in autostart of earlier installer versions).
 if (process.argv.includes('--server-only')) process.exit(0);
 await downloadGeminiLogo();
 const browser = findBrowser();

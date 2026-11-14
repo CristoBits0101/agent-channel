@@ -1,36 +1,38 @@
 #!/usr/bin/env node
 // Installs the channel window as a desktop app for the current user, on Windows, macOS or Linux:
-// a desktop shortcut and an entry in the system app menu, both pointing at `node launch.mjs`.
+// a desktop shortcut and an entry in the system app menu, both running `node launch.mjs`.
 //
-//   node install.mjs               install the shortcuts
-//   node install.mjs --autostart   also start the local server when you sign in
-//   node install.mjs --uninstall   remove everything this script created
+//   agent-channel install      (or: node install.mjs)
+//   agent-channel uninstall    (or: node install.mjs --uninstall)
 //
-// Nothing needs administrator rights and nothing is downloaded. Shortcuts point straight at the
-// Node.js binary that runs this script, so moving the clone or changing Node means installing again.
+// To stay quiet for antivirus heuristics it only writes plain files: no PowerShell, no scripts
+// in hidden windows, no downloads and nothing in the sign-in startup folders. Opening the app
+// starts the local server when it is not running, so no autostart is needed.
+// Shortcuts point at the Node.js binary that runs this script, so moving the folder or
+// changing Node means installing again.
 import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeShortcut } from './lib/shortcut.mjs';
 
 const name = 'Agent Channel';
-const directory = fileURLToPath(new URL('.', import.meta.url)).replace(/[\\/]$/, '');
+const directory = dirname(fileURLToPath(import.meta.url));
 const launcher = join(directory, 'launch.mjs');
 const node = process.execPath;
 const home = homedir();
-const args = new Set(process.argv.slice(2));
-const uninstall = args.has('--uninstall');
-const autostart = args.has('--autostart');
+const args = process.argv.slice(2);
+const uninstall = args.includes('--uninstall');
 // Testing only: put every shortcut under this folder instead of the real system folders.
 const sandbox = process.env.AGENT_CHANNEL_SHORTCUTS_DIR;
 
 for (const arg of args) {
-  if (!['--uninstall', '--autostart', '--help'].includes(arg)) fail(`Unknown option ${arg}. Use --autostart, --uninstall or --help.`);
-}
-if (args.has('--help')) {
-  process.stdout.write('node install.mjs [--autostart] | --uninstall\n');
-  process.exit(0);
+  if (arg === '--help') {
+    process.stdout.write('node install.mjs [--uninstall]\n');
+    process.exit(0);
+  }
+  if (arg !== '--uninstall') fail(`Unknown option ${arg}. Use --uninstall or --help.`);
 }
 
 function fail(message) {
@@ -38,93 +40,64 @@ function fail(message) {
   process.exit(1);
 }
 
-function run(command, commandArgs, input) {
-  const result = spawnSync(command, commandArgs, { input, encoding: 'utf8', windowsHide: true });
-  if (result.status !== 0) throw new Error((result.stderr || result.error?.message || `${command} failed`).trim());
-  return result.stdout.trim();
-}
-
-function remove(path, report) {
-  if (!existsSync(path)) return;
-  rmSync(path, { recursive: true, force: true });
-  report.push(path);
-}
-
 // ---------- Windows ----------
 
-function windowsFolders() {
-  if (sandbox) return { desktop: join(sandbox, 'desktop'), menu: join(sandbox, 'menu'), startup: join(sandbox, 'startup') };
-  // Ask Windows: the desktop may be redirected, for example to OneDrive.
-  const output = run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
-    "[Environment]::GetFolderPath('Desktop'); [Environment]::GetFolderPath('Programs'); [Environment]::GetFolderPath('Startup')"]);
-  const [desktop, menu, startup] = output.split(/\r?\n/);
-  return { desktop, menu, startup };
-}
-
-function windowsShortcuts(shortcuts) {
-  // WScript.Shell writes the .lnk files. The values travel in environment variables, never inside the script text.
-  const script = `
-$shell = New-Object -ComObject WScript.Shell
-$items = $env:AC_SHORTCUTS | ConvertFrom-Json
-foreach ($item in $items) {
-  New-Item -ItemType Directory -Force -Path (Split-Path $item.path) | Out-Null
-  $link = $shell.CreateShortcut($item.path)
-  $link.TargetPath = $env:AC_NODE
-  $link.Arguments = $item.arguments
-  $link.WorkingDirectory = $env:AC_DIR
-  $link.IconLocation = $env:AC_ICON + ',0'
-  $link.Description = $item.description
-  $link.WindowStyle = 7
-  $link.Save()
-}`;
-  // Passed as an argument: with `-Command -` PowerShell reads stdin line by line and skips multi-line blocks.
-  const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-    encoding: 'utf8',
-    windowsHide: true,
-    env: { ...process.env, AC_SHORTCUTS: JSON.stringify(shortcuts), AC_NODE: node, AC_DIR: directory, AC_ICON: join(directory, 'icon.ico') },
-  });
-  if (result.status !== 0) throw new Error(result.stderr.trim() || 'Could not create the shortcuts');
-  const missing = shortcuts.filter(shortcut => !existsSync(shortcut.path));
-  if (missing.length) throw new Error(`Windows did not create ${missing.map(shortcut => shortcut.path).join(', ')}. ${result.stderr.trim()}`);
+function windowsDesktop() {
+  // The desktop may be redirected (for example to OneDrive): read it from the registry, read-only.
+  const key = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders';
+  const result = spawnSync('reg.exe', ['query', key, '/v', 'Desktop'], { encoding: 'utf8', windowsHide: true });
+  const match = /Desktop\s+REG_(?:EXPAND_)?SZ\s+(.+)/.exec(result.stdout ?? '');
+  const raw = match?.[1].trim();
+  const expanded = raw?.replace(/%([^%]+)%/g, (whole, variable) => process.env[variable] ?? whole);
+  return expanded && !expanded.includes('%') ? expanded : join(home, 'Desktop');
 }
 
 function windows() {
-  const folders = windowsFolders();
-  const paths = {
-    desktop: join(folders.desktop, `${name}.lnk`),
-    menu: join(folders.menu, `${name}.lnk`),
-    startup: join(folders.startup, `${name} server.lnk`),
-  };
-  if (uninstall) return Object.values(paths);
-  const open = { arguments: `"${launcher}"`, description: 'Open the agent channel window' };
-  const shortcuts = [{ path: paths.desktop, ...open }, { path: paths.menu, ...open }];
-  if (autostart) shortcuts.push({ path: paths.startup, arguments: `"${launcher}" --server-only`, description: 'Start the agent channel server' });
-  windowsShortcuts(shortcuts);
-  return shortcuts.map(shortcut => shortcut.path);
+  const desktop = sandbox ? join(sandbox, 'desktop') : windowsDesktop();
+  const programs = sandbox ? join(sandbox, 'menu') : join(process.env.APPDATA ?? join(home, 'AppData', 'Roaming'), 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+  const startup = join(programs, 'Startup');
+  const paths = [join(desktop, `${name}.lnk`), join(programs, `${name}.lnk`)];
+  // Earlier versions could add this autostart shortcut; uninstall removes it too.
+  if (uninstall) return [...paths, join(startup, `${name} server.lnk`)];
+  for (const path of paths) {
+    mkdirSync(dirname(path), { recursive: true });
+    writeShortcut(path, {
+      target: node,
+      arguments: `"${launcher}"`,
+      workingDirectory: directory,
+      icon: join(directory, 'icon.ico'),
+      description: 'Open the agent channel window',
+      minimized: true,
+    });
+  }
+  return paths;
 }
 
 // ---------- macOS ----------
 
 function macIcon(resources) {
   // sips and iconutil ship with macOS; without them the app keeps the generic icon.
+  let work;
   try {
-    const set = join(mkdtempSync(join(tmpdir(), 'agent-channel-')), 'AppIcon.iconset');
+    work = mkdtempSync(join(tmpdir(), 'agent-channel-'));
+    const set = join(work, 'AppIcon.iconset');
     mkdirSync(set);
+    const resize = (size, file) => spawnSync('sips', ['-z', String(size), String(size), join(directory, 'icon-512.png'), '--out', join(set, file)]);
     for (const size of [16, 32, 128, 256, 512]) {
-      run('sips', ['-z', String(size), String(size), join(directory, 'icon-512.png'), '--out', join(set, `icon_${size}x${size}.png`)]);
-      run('sips', ['-z', String(size * 2), String(size * 2), join(directory, 'icon-512.png'), '--out', join(set, `icon_${size}x${size}@2x.png`)]);
+      resize(size, `icon_${size}x${size}.png`);
+      resize(size * 2, `icon_${size}x${size}@2x.png`);
     }
-    run('iconutil', ['-c', 'icns', set, '-o', join(resources, 'AppIcon.icns')]);
-    rmSync(join(set, '..'), { recursive: true, force: true });
+    spawnSync('iconutil', ['-c', 'icns', set, '-o', join(resources, 'AppIcon.icns')]);
   } catch {}
+  if (work) rmSync(work, { recursive: true, force: true });
 }
 
 function mac() {
   const apps = sandbox ? join(sandbox, 'Applications') : join(home, 'Applications');
-  const agents = sandbox ? join(sandbox, 'LaunchAgents') : join(home, 'Library', 'LaunchAgents');
   const bundle = join(apps, `${name}.app`);
-  const agent = join(agents, 'com.agent-channel.server.plist');
-  if (uninstall) return [bundle, agent];
+  // Earlier versions could add this sign-in agent; uninstall removes it too.
+  const legacyAgent = join(sandbox ?? join(home, 'Library'), 'LaunchAgents', 'com.agent-channel.server.plist');
+  if (uninstall) return [bundle, legacyAgent];
 
   const contents = join(bundle, 'Contents');
   const resources = join(contents, 'Resources');
@@ -148,35 +121,16 @@ function mac() {
 </plist>
 `);
   macIcon(resources);
-  const created = [bundle];
-  if (autostart) {
-    mkdirSync(agents, { recursive: true });
-    writeFileSync(agent, `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key><string>com.agent-channel.server</string>
-  <key>ProgramArguments</key>
-  <array><string>${node}</string><string>${launcher}</string><string>--server-only</string></array>
-  <key>WorkingDirectory</key><string>${directory}</string>
-  <key>RunAtLoad</key><true/>
-</dict>
-</plist>
-`);
-    created.push(agent);
-  }
-  return created;
+  return [bundle];
 }
 
 // ---------- Linux ----------
 
 function linuxDesktopDir() {
   if (sandbox) return join(sandbox, 'Desktop');
-  try {
-    const folder = run('xdg-user-dir', ['DESKTOP']);
-    if (folder && folder !== home) return folder;
-  } catch {}
-  return join(home, 'Desktop');
+  const result = spawnSync('xdg-user-dir', ['DESKTOP'], { encoding: 'utf8' });
+  const folder = result.status === 0 ? result.stdout.trim() : '';
+  return folder && folder !== home ? folder : join(home, 'Desktop');
 }
 
 function linux() {
@@ -185,52 +139,46 @@ function linux() {
   const menu = sandbox ? join(sandbox, 'applications', 'agent-channel.desktop') : join(data, 'applications', 'agent-channel.desktop');
   const desktopDir = linuxDesktopDir();
   const desktop = join(desktopDir, 'agent-channel.desktop');
-  const startup = sandbox ? join(sandbox, 'autostart', 'agent-channel-server.desktop') : join(config, 'autostart', 'agent-channel-server.desktop');
-  if (uninstall) return [menu, desktop, startup];
+  // Earlier versions could add this autostart entry; uninstall removes it too.
+  const legacyStartup = sandbox ? join(sandbox, 'autostart', 'agent-channel-server.desktop') : join(config, 'autostart', 'agent-channel-server.desktop');
+  if (uninstall) return [menu, desktop, legacyStartup];
 
   const quote = value => `"${value.replace(/(["`$\\])/g, '\\$1')}"`;
-  const entry = (title, extra, comment) => `[Desktop Entry]
+  const entry = `[Desktop Entry]
 Type=Application
-Name=${title}
-Comment=${comment}
-Exec=${quote(node)} ${quote(launcher)}${extra}
+Name=${name}
+Comment=Open the agent channel window
+Exec=${quote(node)} ${quote(launcher)}
 Path=${directory}
 Icon=${join(directory, 'icon-512.png')}
 Terminal=false
 Categories=Development;
 `;
   const created = [];
-  const write = (path, text) => {
-    mkdirSync(join(path, '..'), { recursive: true });
-    writeFileSync(path, text);
+  for (const path of [menu, ...(existsSync(desktopDir) || sandbox ? [desktop] : [])]) {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, entry);
     chmodSync(path, 0o755);
     created.push(path);
-  };
-  write(menu, entry(name, '', 'Open the agent channel window'));
-  if (existsSync(desktopDir) || sandbox) {
-    write(desktop, entry(name, '', 'Open the agent channel window'));
-    // GNOME only launches desktop files marked as trusted.
-    try { run('gio', ['set', desktop, 'metadata::trusted', 'true']); } catch {}
   }
-  if (autostart) write(startup, entry(`${name} server`, ' --server-only', 'Start the agent channel server'));
+  // GNOME only launches desktop-folder entries marked as trusted.
+  if (created.includes(desktop)) spawnSync('gio', ['set', desktop, 'metadata::trusted', 'true']);
   return created;
 }
 
 // ---------- Main ----------
 
 if (!existsSync(launcher)) fail(`launch.mjs not found next to install.mjs (${directory}).`);
-const platform = process.platform;
-const handler = platform === 'win32' ? windows : platform === 'darwin' ? mac : linux;
+const handler = process.platform === 'win32' ? windows : process.platform === 'darwin' ? mac : linux;
 
 try {
   const paths = handler();
   if (uninstall) {
-    const removed = [];
-    for (const path of paths) remove(path, removed);
+    const removed = paths.filter(path => existsSync(path));
+    for (const path of removed) rmSync(path, { recursive: true, force: true });
     process.stdout.write(removed.length ? `Removed:\n${removed.map(path => `  ${path}`).join('\n')}\n` : 'Nothing to remove.\n');
   } else {
     process.stdout.write(`Installed ${name}:\n${paths.map(path => `  ${path}`).join('\n')}\n`);
-    if (!autostart) process.stdout.write('Add --autostart to start the local server when you sign in.\n');
   }
 } catch (error) {
   fail(`Install failed: ${error.message}`);
